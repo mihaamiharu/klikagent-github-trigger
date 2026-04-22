@@ -3,12 +3,18 @@ import express, { Request, Response } from 'express';
 import { validateSignature } from './validator';
 import { parseIssuePayload, parseReviewPayload } from './parser';
 import { forwardTask, forwardReview } from './router';
-import { GitHubIssuePayload, GitHubPRReviewPayload, GitHubReviewComment } from './types';
+import { getIssueRef, deleteIssueRef } from './store';
+import { commentOnIssue, transitionToInQA } from './github';
+import { GitHubIssuePayload, GitHubPRReviewPayload, GitHubReviewComment, TaskResult } from './types';
 
 const app = express();
 
-// Raw body required for HMAC signature validation
-app.use(express.raw({ type: '*/*' }));
+// Raw body required for HMAC signature validation on the webhook route.
+// All other routes use JSON parsing.
+app.use('/webhook', express.raw({ type: '*/*' }));
+app.use('/callback', express.json());
+
+// ─── POST /webhook/github ─────────────────────────────────────────────────────
 
 app.post('/webhook/github', async (req: Request, res: Response) => {
   const eventType = req.headers['x-github-event'] as string | undefined;
@@ -33,13 +39,21 @@ app.post('/webhook/github', async (req: Request, res: Response) => {
 
   try {
     if (eventType === 'issues') {
-      const task = parseIssuePayload(payload as GitHubIssuePayload);
+      const issuePayload = payload as GitHubIssuePayload;
+      const task = parseIssuePayload(issuePayload);
       if (!task) {
         console.log('[trigger] issues event ignored (not ready-for-qa or not labeled action)');
         return;
       }
+
+      const [owner, repo] = issuePayload.repository.full_name.split('/');
       console.log(`[trigger] Forwarding task ${task.taskId} "${task.title}" to KlikAgent`);
-      await forwardTask(task);
+      await forwardTask(task, {
+        owner,
+        repo,
+        issueNumber: issuePayload.issue.number,
+        issueUrl: issuePayload.issue.html_url,
+      });
       console.log(`[trigger] Task ${task.taskId} forwarded`);
       return;
     }
@@ -68,6 +82,53 @@ app.post('/webhook/github', async (req: Request, res: Response) => {
     console.log(`[trigger] Unhandled event type: ${eventType}`);
   } catch (err) {
     console.error(`[trigger] Error processing event: ${(err as Error).message}`);
+  }
+});
+
+// ─── POST /callback/tasks/:id/results ────────────────────────────────────────
+// KlikAgent calls this when spec generation is done. We comment on the
+// originating GitHub issue and transition its label to status:in-qa.
+
+app.post('/callback/tasks/:id/results', async (req: Request, res: Response) => {
+  const taskId = req.params.id;
+  const result = req.body as TaskResult;
+
+  console.log(`[trigger] POST /callback/tasks/${taskId}/results — passed=${result.passed}`);
+  res.status(200).json({ received: true });
+
+  const ref = getIssueRef(taskId);
+  if (!ref) {
+    console.warn(`[trigger] No issue ref found for task ${taskId} — skipping comment`);
+    return;
+  }
+
+  try {
+    const warnBlock = result.metadata?.warned
+      ? `\n\n> ⚠️ **Warning:** ${result.metadata.warningMessage ?? 'Spec may need manual review.'}`
+      : '';
+
+    const tokenUsage = result.metadata?.tokenUsage as
+      | { promptTokens: number; completionTokens: number; totalTokens: number }
+      | undefined;
+
+    const tokenBlock = tokenUsage
+      ? `\n\n> Tokens: ${tokenUsage.promptTokens.toLocaleString()} prompt + ${tokenUsage.completionTokens.toLocaleString()} completion = **${tokenUsage.totalTokens.toLocaleString()} total**`
+      : '';
+
+    const body =
+      `🤖 **KlikAgent** — QA spec generated!\n\n` +
+      `PR: ${result.reportUrl ?? '(no URL)'}\n\n` +
+      `Issue will be moved to \`status:in-qa\`. Tests will run automatically on the PR.` +
+      tokenBlock +
+      warnBlock;
+
+    await transitionToInQA(ref.owner, ref.repo, ref.issueNumber);
+    await commentOnIssue(ref.owner, ref.repo, ref.issueNumber, body);
+    deleteIssueRef(taskId);
+
+    console.log(`[trigger] Commented on issue #${ref.issueNumber} in ${ref.owner}/${ref.repo}`);
+  } catch (err) {
+    console.error(`[trigger] Failed to comment on issue for task ${taskId}: ${(err as Error).message}`);
   }
 });
 
@@ -107,7 +168,6 @@ async function fetchReviewComments(
     diff_hunk: string;
   }>;
 
-  // Filter to only comments belonging to this review
   return all
     .filter((c) => c.pull_request_review_id === reviewId)
     .map((c) => ({
