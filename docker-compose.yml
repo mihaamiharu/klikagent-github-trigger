@@ -9,6 +9,7 @@ services:
       - GITHUB_TOKEN
       - GITHUB_WEBHOOK_SECRET
       - KLIKAGENT_URL
+      - TRIGGER_URL
       - GITHUB_TEST_REPO
       - QA_ENV_URL
       - PORT
