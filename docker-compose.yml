@@ -1,0 +1,14 @@
+services:
+  klikagent-github-trigger:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "4001:3001"
+    environment:
+      - NODE_ENV=production
+      - GITHUB_TOKEN
+      - GITHUB_WEBHOOK_SECRET
+      - KLIKAGENT_URL
+      - GITHUB_TEST_REPO
+      - QA_ENV_URL
+      - PORT
