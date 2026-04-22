@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Run tests
+        run: npm test
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_WEBHOOK_SECRET: ${{ secrets.GH_WEBHOOK_SECRET }}
+          PORT: ${{ vars.PORT }}
+          KLIKAGENT_URL: ${{ vars.KLIKAGENT_URL }}
+          GITHUB_TEST_REPO: ${{ vars.GITHUB_TEST_REPO }}
+          QA_ENV_URL: ${{ vars.QA_ENV_URL }}
+        with:
+          host: 103.235.75.99
+          username: deploy
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          envs: GH_TOKEN,GH_WEBHOOK_SECRET,PORT,KLIKAGENT_URL,GITHUB_TEST_REPO,QA_ENV_URL
+          script: |
+            set -e
+            DEPLOY_DIR=~/apps/klikagent-github-trigger
+            if [ ! -d "$DEPLOY_DIR" ]; then
+              git clone https://github.com/mihaamiharu/klikagent-github-trigger.git "$DEPLOY_DIR"
+            fi
+            cd "$DEPLOY_DIR"
+            git fetch origin main
+            git pull origin main
+            export GITHUB_TOKEN=$GH_TOKEN
+            export GITHUB_WEBHOOK_SECRET=$GH_WEBHOOK_SECRET
+            docker compose up --build -d
+            docker image prune -f
