@@ -33,11 +33,11 @@ export function parseIssuePayload(payload: GitHubIssuePayload): QATask | null {
     description: payload.issue.body ?? '',
     qaEnvUrl,
     outputRepo,
+    ...(feature ? { feature } : {}),
     metadata: {
       issueUrl: payload.issue.html_url,
       repoFullName: payload.repository.full_name,
       labels: payload.issue.labels.map((l) => l.name),
-      ...(feature ? { feature } : {}),
     },
   };
 }

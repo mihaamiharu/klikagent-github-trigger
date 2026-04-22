@@ -70,7 +70,12 @@ describe('parseIssuePayload', () => {
       { name: 'feature:auth' },
     ];
     const task = parseIssuePayload(payload);
-    expect(task?.metadata?.feature).toBe('auth');
+    expect(task?.feature).toBe('auth');
+  });
+
+  it('leaves feature undefined when no feature:* label', () => {
+    const task = parseIssuePayload(makeIssuePayload());
+    expect(task?.feature).toBeUndefined();
   });
 
   it('handles null issue body gracefully', () => {

@@ -52,6 +52,7 @@ export interface QATask {
   description: string;
   qaEnvUrl: string;
   outputRepo: string;
+  feature?: string;                // feature area e.g. "auth" — from feature:* label
   callbackUrl?: string;            // KlikAgent POSTs TaskResult here when done
   metadata?: Record<string, unknown>;
 }
