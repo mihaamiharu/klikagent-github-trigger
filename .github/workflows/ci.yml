@@ -43,13 +43,14 @@ jobs:
           GH_WEBHOOK_SECRET: ${{ secrets.GH_WEBHOOK_SECRET }}
           PORT: ${{ vars.PORT }}
           KLIKAGENT_URL: ${{ vars.KLIKAGENT_URL }}
-          GITHUB_TEST_REPO: ${{ vars.GITHUB_TEST_REPO }}
+          TRIGGER_URL: ${{ vars.TRIGGER_URL }}
+          GH_TEST_REPO: ${{ vars.GH_TEST_REPO }}
           QA_ENV_URL: ${{ vars.QA_ENV_URL }}
         with:
           host: 103.235.75.99
           username: deploy
           key: ${{ secrets.DEPLOY_SSH_KEY }}
-          envs: GH_TOKEN,GH_WEBHOOK_SECRET,PORT,KLIKAGENT_URL,GITHUB_TEST_REPO,QA_ENV_URL
+          envs: GH_TOKEN,GH_WEBHOOK_SECRET,PORT,KLIKAGENT_URL,TRIGGER_URL,GH_TEST_REPO,QA_ENV_URL
           script: |
             set -e
             DEPLOY_DIR=~/apps/klikagent-github-trigger
@@ -61,5 +62,9 @@ jobs:
             git pull origin main
             export GITHUB_TOKEN=$GH_TOKEN
             export GITHUB_WEBHOOK_SECRET=$GH_WEBHOOK_SECRET
+            export KLIKAGENT_URL=$KLIKAGENT_URL
+            export TRIGGER_URL=$TRIGGER_URL
+            export GITHUB_TEST_REPO=$GH_TEST_REPO
+            export QA_ENV_URL=$QA_ENV_URL
             docker compose up --build -d
             docker image prune -f
