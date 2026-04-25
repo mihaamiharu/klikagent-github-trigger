@@ -11,7 +11,7 @@ GitHub Webhook
     ↓
 klikagent-github-trigger
     ├── Validates HMAC-SHA256 signature
-    ├── issues labeled (status:ready-for-qa) → POST /tasks to KlikAgent
+    ├── issues labeled (klikagent) → POST /tasks to KlikAgent
     └── pull_request_review (CHANGES_REQUESTED) → POST /reviews to KlikAgent
 ```
 

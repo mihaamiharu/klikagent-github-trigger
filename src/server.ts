@@ -42,7 +42,7 @@ app.post('/webhook/github', async (req: Request, res: Response) => {
       const issuePayload = payload as GitHubIssuePayload;
       const task = parseIssuePayload(issuePayload);
       if (!task) {
-        console.log('[trigger] issues event ignored (not ready-for-qa or not labeled action)');
+        console.log('[trigger] issues event ignored (not klikagent or not labeled action)');
         return;
       }
 

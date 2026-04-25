@@ -20,13 +20,13 @@ afterEach(() => {
 function makeIssuePayload(overrides: Partial<GitHubIssuePayload> = {}): GitHubIssuePayload {
   return {
     action: 'labeled',
-    label: { name: 'status:ready-for-qa' },
+    label: { name: 'klikagent' },
     issue: {
       number: 42,
       title: 'Login form validation',
       body: '## Acceptance Criteria\nUser can log in',
       html_url: 'https://github.com/org/qa-repo/issues/42',
-      labels: [{ name: 'status:ready-for-qa' }],
+      labels: [{ name: 'klikagent' }],
     },
     repository: { name: 'qa-repo', full_name: 'org/qa-repo' },
     ...overrides,
@@ -34,7 +34,7 @@ function makeIssuePayload(overrides: Partial<GitHubIssuePayload> = {}): GitHubIs
 }
 
 describe('parseIssuePayload', () => {
-  it('returns QATask for status:ready-for-qa labeled event', () => {
+  it('returns QATask for klikagent labeled event', () => {
     const task = parseIssuePayload(makeIssuePayload());
 
     expect(task).not.toBeNull();
@@ -51,7 +51,7 @@ describe('parseIssuePayload', () => {
     expect(result).toBeNull();
   });
 
-  it('returns null when label is not status:ready-for-qa', () => {
+  it('returns null when label is not klikagent', () => {
     const payload = makeIssuePayload();
     payload.label = { name: 'status:in-progress' };
     expect(parseIssuePayload(payload)).toBeNull();
@@ -66,7 +66,7 @@ describe('parseIssuePayload', () => {
   it('extracts feature from feature:* label', () => {
     const payload = makeIssuePayload();
     payload.issue.labels = [
-      { name: 'status:ready-for-qa' },
+      { name: 'klikagent' },
       { name: 'feature:auth' },
     ];
     const task = parseIssuePayload(payload);
