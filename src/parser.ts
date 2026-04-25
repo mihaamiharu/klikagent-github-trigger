@@ -52,11 +52,16 @@ export function parseReviewPayload(
   inlineComments: GitHubReviewComment[],
 ): ReviewContext | null {
   if (payload.action !== 'submitted') return null;
-  if (payload.review.state !== 'CHANGES_REQUESTED') return null;
 
-  // Extract taskId from branch name e.g. "qa/42-login-form" → "42"
+  const state = payload.review.state.toUpperCase();
+  if (state !== 'CHANGES_REQUESTED' && state !== 'COMMENTED') return null;
+
+  // COMMENTED reviews with no inline comments have nothing actionable
+  if (state === 'COMMENTED' && inlineComments.length === 0) return null;
+
+  // Extract ticketId from branch name e.g. "qa/42-login-form" → "42"
   const branchMatch = payload.pull_request.head.ref.match(/^qa\/(\d+)-/);
-  const taskId = branchMatch ? branchMatch[1] : '';
+  const ticketId = branchMatch ? branchMatch[1] : '';
 
   const comments: ReviewComment[] = inlineComments.map((c) => ({
     id: c.id,
@@ -69,8 +74,9 @@ export function parseReviewPayload(
   return {
     prNumber: payload.pull_request.number,
     repo: payload.repository.name,
+    outputRepo: payload.repository.name,
     branch: payload.pull_request.head.ref,
-    taskId,
+    ticketId,
     reviewId: payload.review.id,
     reviewerLogin: payload.review.user.login,
     comments,

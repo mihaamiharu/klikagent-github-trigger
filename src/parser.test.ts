@@ -118,7 +118,7 @@ describe('parseReviewPayload', () => {
     expect(ctx).not.toBeNull();
     expect(ctx?.prNumber).toBe(5);
     expect(ctx?.branch).toBe('qa/42-login-form-validation');
-    expect(ctx?.taskId).toBe('42');
+    expect(ctx?.ticketId).toBe('42');
     expect(ctx?.reviewId).toBe(99);
     expect(ctx?.reviewerLogin).toBe('reviewer-jane');
     expect(ctx?.comments).toHaveLength(1);
@@ -131,21 +131,36 @@ describe('parseReviewPayload', () => {
     expect(result).toBeNull();
   });
 
-  it('returns null when state is not CHANGES_REQUESTED', () => {
+  it('returns null for APPROVED state', () => {
     const payload = makeReviewPayload();
     payload.review.state = 'APPROVED';
+    expect(parseReviewPayload(payload, mockComments)).toBeNull();
+  });
+
+  it('returns ReviewContext for COMMENTED with inline comments', () => {
+    const payload = makeReviewPayload();
+    payload.review.state = 'COMMENTED';
+    const ctx = parseReviewPayload(payload, mockComments);
+    expect(ctx).not.toBeNull();
+    expect(ctx?.ticketId).toBe('42');
+  });
+
+  it('returns null for COMMENTED with no inline comments', () => {
+    const payload = makeReviewPayload();
+    payload.review.state = 'COMMENTED';
     expect(parseReviewPayload(payload, [])).toBeNull();
   });
 
-  it('extracts taskId from branch name', () => {
+  it('extracts ticketId from branch name', () => {
     const payload = makeReviewPayload();
     payload.pull_request.head.ref = 'qa/123-some-feature';
-    const ctx = parseReviewPayload(payload, []);
-    expect(ctx?.taskId).toBe('123');
+    const ctx = parseReviewPayload(payload, mockComments);
+    expect(ctx?.ticketId).toBe('123');
   });
 
-  it('handles empty inline comments', () => {
+  it('handles CHANGES_REQUESTED with empty inline comments', () => {
     const ctx = parseReviewPayload(makeReviewPayload(), []);
+    expect(ctx).not.toBeNull();
     expect(ctx?.comments).toEqual([]);
   });
 });

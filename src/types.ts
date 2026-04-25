@@ -79,8 +79,9 @@ export interface ReviewComment {
 export interface ReviewContext {
   prNumber: number;
   repo: string;
+  outputRepo: string;   // klikagent requires this — same value as repo
   branch: string;
-  taskId: string;
+  ticketId: string;     // klikagent field name (was taskId)
   reviewId: number;
   reviewerLogin: string;
   comments: ReviewComment[];

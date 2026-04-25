@@ -70,7 +70,7 @@ app.post('/webhook/github', async (req: Request, res: Response) => {
 
       const ctx = parseReviewPayload(reviewPayload, comments);
       if (!ctx) {
-        console.log('[trigger] pull_request_review ignored (not CHANGES_REQUESTED)');
+        console.log('[trigger] pull_request_review ignored (not CHANGES_REQUESTED/COMMENTED, or COMMENTED with no inline comments)');
         return;
       }
       console.log(`[trigger] Forwarding review for PR #${ctx.prNumber} branch=${ctx.branch}`);
