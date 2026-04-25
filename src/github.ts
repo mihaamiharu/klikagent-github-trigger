@@ -74,6 +74,6 @@ export async function transitionToInQA(
   repo: string,
   issueNumber: number,
 ): Promise<void> {
-  await removeLabel(owner, repo, issueNumber, 'status:ready-for-qa');
+  await removeLabel(owner, repo, issueNumber, 'klikagent');
   await addLabel(owner, repo, issueNumber, 'status:in-qa');
 }

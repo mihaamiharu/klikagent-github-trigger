@@ -7,7 +7,7 @@ import {
   ReviewContext,
 } from './types';
 
-const READY_FOR_QA_LABEL = 'status:ready-for-qa';
+const KLIKAGENT_LABEL = 'klikagent';
 
 /**
  * Parses a GitHub `issues` webhook payload.
@@ -16,7 +16,7 @@ const READY_FOR_QA_LABEL = 'status:ready-for-qa';
  */
 export function parseIssuePayload(payload: GitHubIssuePayload): QATask | null {
   if (payload.action !== 'labeled') return null;
-  if (payload.label?.name !== READY_FOR_QA_LABEL) return null;
+  if (payload.label?.name !== KLIKAGENT_LABEL) return null;
 
   const qaEnvUrl = process.env.QA_ENV_URL ?? '';
   const outputRepo = process.env.GITHUB_TEST_REPO ?? 'klikagent-tests';
