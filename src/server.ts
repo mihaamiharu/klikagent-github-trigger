@@ -85,6 +85,40 @@ app.post('/webhook/github', async (req: Request, res: Response) => {
   }
 });
 
+// ─── POST /tasks ──────────────────────────────────────────────────────────────
+// Manual task trigger (e.g. from GitHub Action).
+
+app.post('/tasks', async (req: Request, res: Response) => {
+  const task = req.body as QATask;
+  const metadata = task.metadata as { issueUrl?: string; repoFullName?: string } | undefined;
+
+  console.log(`[trigger] POST /tasks — task ${task.taskId} "${task.title}"`);
+
+  if (!metadata?.issueUrl || !metadata?.repoFullName) {
+    console.warn('[trigger] Missing issueUrl or repoFullName in metadata — cannot save issue ref');
+    res.status(400).json({ error: 'Missing metadata.issueUrl or metadata.repoFullName' });
+    return;
+  }
+
+  // Respond immediately
+  res.status(202).json({ received: true });
+
+  try {
+    const [owner, repo] = metadata.repoFullName.split('/');
+    const issueNumber = parseInt(task.taskId, 10);
+
+    await forwardTask(task, {
+      owner,
+      repo,
+      issueNumber,
+      issueUrl: metadata.issueUrl,
+    });
+    console.log(`[trigger] Task ${task.taskId} forwarded to KlikAgent`);
+  } catch (err) {
+    console.error(`[trigger] Failed to forward task ${task.taskId}: ${(err as Error).message}`);
+  }
+});
+
 // ─── POST /callback/tasks/:id/results ────────────────────────────────────────
 // KlikAgent calls this when spec generation is done. We comment on the
 // originating GitHub issue and transition its label to status:in-qa.
