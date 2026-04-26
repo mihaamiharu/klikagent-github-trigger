@@ -7,7 +7,7 @@ function klikagentUrl(): string {
 
 function triggerUrl(): string {
   const port = process.env.PORT ?? '3001';
-  return (process.env.TRIGGER_URL ?? `http://localhost:${port}`).replace(/\/$/, '');
+  return (process.env.TRIGGER_URL ?? `http://host.docker.internal:${port}`).replace(/\/$/, '');
 }
 
 async function post(path: string, body: unknown): Promise<void> {
