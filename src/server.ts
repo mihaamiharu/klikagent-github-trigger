@@ -5,7 +5,7 @@ import { parseIssuePayload, parseReviewPayload } from './parser';
 import { forwardTask, forwardReview } from './router';
 import { getIssueRef, deleteIssueRef } from './store';
 import { commentOnIssue, transitionToInQA } from './github';
-import { GitHubIssuePayload, GitHubPRReviewPayload, GitHubReviewComment, TaskResult } from './types';
+import { GitHubIssuePayload, GitHubPRReviewPayload, GitHubReviewComment, TaskResult, QATask } from './types';
 
 const app = express();
 
