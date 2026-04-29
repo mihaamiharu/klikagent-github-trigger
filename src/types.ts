@@ -85,4 +85,5 @@ export interface ReviewContext {
   reviewId: number;
   reviewerLogin: string;
   comments: ReviewComment[];
+  specPath: string;     // repo-relative path to the spec file e.g. "tests/web/auth/qa-auth-flow.spec.ts"
 }

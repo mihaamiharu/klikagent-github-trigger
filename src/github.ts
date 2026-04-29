@@ -77,3 +77,20 @@ export async function transitionToInQA(
   await removeLabel(owner, repo, issueNumber, 'klikagent');
   await addLabel(owner, repo, issueNumber, 'status:in-qa');
 }
+
+/**
+ * Returns the repo-relative path of the first .spec.ts file changed in a PR,
+ * or null if none is found.
+ */
+export async function fetchPRSpecPath(
+  repoFullName: string,
+  prNumber: number,
+): Promise<string | null> {
+  const res = await ghRequest(`/repos/${repoFullName}/pulls/${prNumber}/files`);
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`fetchPRSpecPath PR#${prNumber}: ${res.status} ${text}`);
+  }
+  const files = await res.json() as Array<{ filename: string }>;
+  return files.find((f) => f.filename.endsWith('.spec.ts'))?.filename ?? null;
+}

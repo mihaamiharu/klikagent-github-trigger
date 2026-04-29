@@ -50,6 +50,7 @@ export function parseIssuePayload(payload: GitHubIssuePayload): QATask | null {
 export function parseReviewPayload(
   payload: GitHubPRReviewPayload,
   inlineComments: GitHubReviewComment[],
+  specPath: string,
 ): ReviewContext | null {
   if (payload.action !== 'submitted') return null;
 
@@ -80,5 +81,6 @@ export function parseReviewPayload(
     reviewId: payload.review.id,
     reviewerLogin: payload.review.user.login,
     comments,
+    specPath,
   };
 }
