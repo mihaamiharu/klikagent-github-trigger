@@ -165,4 +165,24 @@ describe('parseReviewPayload', () => {
     expect(ctx).not.toBeNull();
     expect(ctx?.comments).toEqual([]);
   });
+
+  it('returns null when all inline comments are KlikAgent replies (bot loop guard)', () => {
+    const payload = makeReviewPayload();
+    payload.review.state = 'COMMENTED';
+    const botComments: GitHubReviewComment[] = [
+      { id: 10, path: 'pages/auth/AuthPage.ts', line: 34, body: '[KlikAgent] Fixed: updated welcomeHeading to use level: 1', diff_hunk: '@@ -1 +1 @@' },
+      { id: 11, path: 'tests/web/auth/spec.ts', line: 12, body: '[KlikAgent] Noted: no change needed', diff_hunk: '@@ -1 +1 @@' },
+    ];
+    expect(parseReviewPayload(payload, botComments, mockSpecPath)).toBeNull();
+  });
+
+  it('forwards COMMENTED when at least one comment is not a KlikAgent reply', () => {
+    const payload = makeReviewPayload();
+    payload.review.state = 'COMMENTED';
+    const mixedComments: GitHubReviewComment[] = [
+      { id: 10, path: 'pages/auth/AuthPage.ts', line: 34, body: '[KlikAgent] Fixed: updated selector', diff_hunk: '@@ -1 +1 @@' },
+      { id: 11, path: 'tests/web/auth/spec.ts', line: 12, body: 'Please fix this locator too', diff_hunk: '@@ -1 +1 @@' },
+    ];
+    expect(parseReviewPayload(payload, mixedComments, mockSpecPath)).not.toBeNull();
+  });
 });
