@@ -110,10 +110,11 @@ function makeReviewPayload(overrides: Partial<GitHubPRReviewPayload> = {}): GitH
 const mockComments: GitHubReviewComment[] = [
   { id: 1, path: 'tests/web/general/42.spec.ts', line: 10, body: 'Wrong selector', diff_hunk: '@@ -1,1 +1,2 @@' },
 ];
+const mockSpecPath = 'tests/web/auth/42-login-form.spec.ts';
 
 describe('parseReviewPayload', () => {
   it('returns ReviewContext for CHANGES_REQUESTED', () => {
-    const ctx = parseReviewPayload(makeReviewPayload(), mockComments);
+    const ctx = parseReviewPayload(makeReviewPayload(), mockComments, mockSpecPath);
 
     expect(ctx).not.toBeNull();
     expect(ctx?.prNumber).toBe(5);
@@ -121,26 +122,27 @@ describe('parseReviewPayload', () => {
     expect(ctx?.ticketId).toBe('42');
     expect(ctx?.reviewId).toBe(99);
     expect(ctx?.reviewerLogin).toBe('reviewer-jane');
+    expect(ctx?.specPath).toBe(mockSpecPath);
     expect(ctx?.comments).toHaveLength(1);
     expect(ctx?.comments[0].body).toBe('Wrong selector');
     expect(ctx?.comments[0].diffHunk).toBe('@@ -1,1 +1,2 @@');
   });
 
   it('returns null for non-submitted action', () => {
-    const result = parseReviewPayload(makeReviewPayload({ action: 'dismissed' }), []);
+    const result = parseReviewPayload(makeReviewPayload({ action: 'dismissed' }), [], mockSpecPath);
     expect(result).toBeNull();
   });
 
   it('returns null for APPROVED state', () => {
     const payload = makeReviewPayload();
     payload.review.state = 'APPROVED';
-    expect(parseReviewPayload(payload, mockComments)).toBeNull();
+    expect(parseReviewPayload(payload, mockComments, mockSpecPath)).toBeNull();
   });
 
   it('returns ReviewContext for COMMENTED with inline comments', () => {
     const payload = makeReviewPayload();
     payload.review.state = 'COMMENTED';
-    const ctx = parseReviewPayload(payload, mockComments);
+    const ctx = parseReviewPayload(payload, mockComments, mockSpecPath);
     expect(ctx).not.toBeNull();
     expect(ctx?.ticketId).toBe('42');
   });
@@ -148,18 +150,18 @@ describe('parseReviewPayload', () => {
   it('returns null for COMMENTED with no inline comments', () => {
     const payload = makeReviewPayload();
     payload.review.state = 'COMMENTED';
-    expect(parseReviewPayload(payload, [])).toBeNull();
+    expect(parseReviewPayload(payload, [], mockSpecPath)).toBeNull();
   });
 
   it('extracts ticketId from branch name', () => {
     const payload = makeReviewPayload();
     payload.pull_request.head.ref = 'qa/123-some-feature';
-    const ctx = parseReviewPayload(payload, mockComments);
+    const ctx = parseReviewPayload(payload, mockComments, mockSpecPath);
     expect(ctx?.ticketId).toBe('123');
   });
 
   it('handles CHANGES_REQUESTED with empty inline comments', () => {
-    const ctx = parseReviewPayload(makeReviewPayload(), []);
+    const ctx = parseReviewPayload(makeReviewPayload(), [], mockSpecPath);
     expect(ctx).not.toBeNull();
     expect(ctx?.comments).toEqual([]);
   });

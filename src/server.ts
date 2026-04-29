@@ -4,7 +4,7 @@ import { validateSignature } from './validator';
 import { parseIssuePayload, parseReviewPayload } from './parser';
 import { forwardTask, forwardReview } from './router';
 import { getIssueRef, deleteIssueRef } from './store';
-import { commentOnIssue, transitionToInQA } from './github';
+import { commentOnIssue, transitionToInQA, fetchPRSpecPath } from './github';
 import { GitHubIssuePayload, GitHubPRReviewPayload, GitHubReviewComment, TaskResult, QATask } from './types';
 
 const app = express();
@@ -61,14 +61,25 @@ app.post('/webhook/github', async (req: Request, res: Response) => {
     if (eventType === 'pull_request_review') {
       const reviewPayload = payload as GitHubPRReviewPayload;
 
-      // Fetch inline review comments from GitHub API before forwarding
-      const comments = await fetchReviewComments(
-        reviewPayload.repository.full_name,
-        reviewPayload.pull_request.number,
-        reviewPayload.review.id,
-      );
+      // Fetch inline comments and spec path in parallel
+      const [comments, specPath] = await Promise.all([
+        fetchReviewComments(
+          reviewPayload.repository.full_name,
+          reviewPayload.pull_request.number,
+          reviewPayload.review.id,
+        ),
+        fetchPRSpecPath(
+          reviewPayload.repository.full_name,
+          reviewPayload.pull_request.number,
+        ),
+      ]);
 
-      const ctx = parseReviewPayload(reviewPayload, comments);
+      if (!specPath) {
+        console.log(`[trigger] pull_request_review ignored — no .spec.ts file found in PR #${reviewPayload.pull_request.number}`);
+        return;
+      }
+
+      const ctx = parseReviewPayload(reviewPayload, comments, specPath);
       if (!ctx) {
         console.log('[trigger] pull_request_review ignored (not CHANGES_REQUESTED/COMMENTED, or COMMENTED with no inline comments)');
         return;
