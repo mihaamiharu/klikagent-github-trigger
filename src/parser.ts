@@ -60,6 +60,11 @@ export function parseReviewPayload(
   // COMMENTED reviews with no inline comments have nothing actionable
   if (state === 'COMMENTED' && inlineComments.length === 0) return null;
 
+  // Ignore reviews where every comment is a KlikAgent reply — these are bot-generated
+  // and would cause an infinite loop (agent reply → new review event → agent runs again)
+  const allBotReplies = inlineComments.length > 0 && inlineComments.every((c) => c.body.startsWith('[KlikAgent]'));
+  if (allBotReplies) return null;
+
   // Extract ticketId from branch name e.g. "qa/42-login-form" → "42"
   const branchMatch = payload.pull_request.head.ref.match(/^qa\/(\d+)-/);
   const ticketId = branchMatch ? branchMatch[1] : '';
